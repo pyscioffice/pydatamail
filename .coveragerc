@@ -1,0 +1,5 @@
+# .coveragerc to control coverage.py
+[run]
+source = pydatamail
+omit = pydatamail/_version.py
+concurrency = multiprocessing
