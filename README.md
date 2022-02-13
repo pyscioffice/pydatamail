@@ -2,6 +2,7 @@
 [![Python package](https://github.com/pyscioffice/pydatamail/actions/workflows/unittest.yml/badge.svg?branch=main)](https://github.com/pyscioffice/pydatamail/actions/workflows/unittest.yml)
 [![Coverage Status](https://coveralls.io/repos/github/pyscioffice/pydatamail/badge.svg?branch=main)](https://coveralls.io/github/pyscioffice/pydatamail?branch=main)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 The `pydatamail` is a python module to apply data science principles to email processing. It stores the emails in an 
 `SQL` database and generates `pandas.DataFrame` objects for futher processing and plotting.
 
