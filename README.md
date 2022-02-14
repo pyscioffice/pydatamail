@@ -7,9 +7,13 @@ The `pydatamail` is a python module to apply data science principles to email pr
 `SQL` database and generates `pandas.DataFrame` objects for futher processing and plotting.
 
 # Installation 
-Install the `pydatamail` package from github using `pip`:
+Install the `pydatamail` package using `pip`:
 ```
-pip install git+https://github.com/pyscioffice/pydatamail.git
+pip install pydatamail
+```
+Or alternatively using `conda`: 
+```
+conda install -c conda-forge pydatamail
 ```
 
 # Python interface 
