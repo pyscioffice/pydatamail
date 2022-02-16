@@ -46,8 +46,13 @@ class EmailFrom(Base):
 
 
 class DatabaseInterface:
-    def __init__(self, engine):
-        self._session = self._create_database_session(engine=engine)
+    def __init__(self, engine=None, session=None):
+        if session is None and engine is not None:
+            self._session = self._create_database_session(engine=engine)
+        elif session is not None: 
+            self._session = session
+        else: 
+            raise ValueError("Either an sql engine or an sql session is required.")
 
     @property
     def session(self):
