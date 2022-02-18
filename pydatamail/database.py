@@ -51,13 +51,12 @@ class EmailFrom(Base):
 
 
 class DatabaseInterface:
-    def __init__(self, engine=None, session=None, user_id=1):
-        if session is None and engine is not None:
-            self._session = self._create_database_session(engine=engine)
-        elif session is not None:
-            self._session = session
+    def __init__(self, engine, session=None, user_id=1):
+        Base.metadata.create_all(engine)
+        if session is None:
+            self._session = sessionmaker(bind=engine)()
         else:
-            raise ValueError("Either an sql engine or an sql session is required.")
+            self._session = session
         self._user_id = user_id
 
     @property
@@ -339,9 +338,3 @@ class DatabaseInterface:
                 "content": email_content_lst,
             }
         )
-
-    @staticmethod
-    def _create_database_session(engine):
-        session = sessionmaker(bind=engine)()
-        Base.metadata.create_all(engine)
-        return session
