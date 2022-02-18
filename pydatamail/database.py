@@ -15,6 +15,7 @@ class EmailContent(Base):
     email_content = Column(String)
     email_deleted = Column(Boolean)
     email_date = Column(DateTime)
+    user_id = Column(Integer)
 
 
 class Threads(Base):
@@ -22,6 +23,7 @@ class Threads(Base):
     id = Column(Integer, primary_key=True)
     email_id = Column(String, ForeignKey("email_content.email_id"))
     thread_id = Column(String)
+    user_id = Column(Integer)
 
 
 class Labels(Base):
@@ -29,6 +31,7 @@ class Labels(Base):
     id = Column(Integer, primary_key=True)
     email_id = Column(String, ForeignKey("email_content.email_id"))
     label_id = Column(String)
+    user_id = Column(Integer)
 
 
 class EmailTo(Base):
@@ -36,6 +39,7 @@ class EmailTo(Base):
     id = Column(Integer, primary_key=True)
     email_id = Column(String, ForeignKey("email_content.email_id"))
     email_to = Column(String)
+    user_id = Column(Integer)
 
 
 class EmailFrom(Base):
@@ -43,16 +47,18 @@ class EmailFrom(Base):
     id = Column(Integer, primary_key=True)
     email_id = Column(String, ForeignKey("email_content.email_id"))
     email_from = Column(String)
+    user_id = Column(Integer)
 
 
 class DatabaseInterface:
-    def __init__(self, engine=None, session=None):
+    def __init__(self, engine=None, session=None, user_id=1):
         if session is None and engine is not None:
             self._session = self._create_database_session(engine=engine)
         elif session is not None:
             self._session = session
         else:
             raise ValueError("Either an sql engine or an sql session is required.")
+        self._user_id = user_id
 
     @property
     def session(self):
@@ -68,12 +74,15 @@ class DatabaseInterface:
     def list_email_ids(self):
         return [
             instance.email_id
-            for instance in self._session.query(EmailContent).order_by(EmailContent.id)
+            for instance in self._session.query(EmailContent)
+            .filter(EmailContent.user_id == self._user_id)
+            .order_by(EmailContent.id)
         ]
 
     def mark_emails_as_deleted(self, message_id_lst):
         for instance in (
             self._session.query(EmailContent)
+            .filter(EmailContent.user_id == self._user_id)
             .filter(EmailContent.email_id.in_(message_id_lst))
             .all()
         ):
@@ -92,6 +101,7 @@ class DatabaseInterface:
             message_label_stored = [
                 m
                 for m, in self._session.query(Labels.label_id)
+                .filter(Labels.user_id == self._user_id)
                 .filter(Labels.email_id == message_id)
                 .all()
             ]
@@ -109,7 +119,11 @@ class DatabaseInterface:
                 if len(labels_to_add) > 0:
                     self._session.add_all(
                         [
-                            Labels(email_id=message_id, label_id=label_id)
+                            Labels(
+                                email_id=message_id,
+                                label_id=label_id,
+                                user_id=self._user_id,
+                            )
                             for label_id in labels_to_add
                         ]
                     )
@@ -129,7 +143,9 @@ class DatabaseInterface:
                     email.email_content,
                     email.email_date,
                 ]
-                for email in self._session.query(EmailContent).all()
+                for email in self._session.query(EmailContent)
+                .filter(EmailContent.user_id == self._user_id)
+                .all()
             ]
         else:
             email_collect_lst = [
@@ -140,6 +156,7 @@ class DatabaseInterface:
                     email.email_date,
                 ]
                 for email in self._session.query(EmailContent)
+                .filter(EmailContent.user_id == self._user_id)
                 .filter(EmailContent.email_deleted == False)
                 .all()
             ]
@@ -150,6 +167,7 @@ class DatabaseInterface:
             email_id_lst=[
                 email_id
                 for email_id, in self._session.query(Labels.email_id)
+                .filter(Labels.user_id == self._user_id)
                 .filter(Labels.label_id == label_id)
                 .all()
             ]
@@ -160,6 +178,7 @@ class DatabaseInterface:
             email_id_lst=[
                 email_id
                 for email_id, in self._session.query(EmailFrom.email_id)
+                .filter(EmailFrom.user_id == self._user_id)
                 .filter(EmailFrom.email_from == email_from)
                 .all()
             ]
@@ -170,6 +189,7 @@ class DatabaseInterface:
             email_id_lst=[
                 email_id
                 for email_id, in self._session.query(EmailTo.email_id)
+                .filter(EmailTo.user_id == self._user_id)
                 .filter(EmailTo.email_to == email_to)
                 .all()
             ]
@@ -180,6 +200,7 @@ class DatabaseInterface:
             email_id_lst=[
                 email_id
                 for email_id, in self._session.query(Threads.email_id)
+                .filter(Threads.user_id == self._user_id)
                 .filter(Threads.thread_id == thread_id)
                 .all()
             ]
@@ -189,6 +210,7 @@ class DatabaseInterface:
         email_collect_lst = [
             [email.email_id, email.email_subject, email.email_content, email.email_date]
             for email in self._session.query(EmailContent)
+            .filter(EmailContent.user_id == self._user_id)
             .filter(EmailContent.email_id.in_(email_id_lst))
             .all()
         ]
@@ -197,7 +219,7 @@ class DatabaseInterface:
     def _commit_thread_table(self, df):
         self._session.add_all(
             [
-                Threads(email_id=email_id, thread_id=thread_id)
+                Threads(email_id=email_id, thread_id=thread_id, user_id=self._user_id)
                 for email_id, thread_id in zip(df["id"], df["thread_id"])
             ]
         )
@@ -206,7 +228,9 @@ class DatabaseInterface:
     def _commit_email_from_table(self, df):
         self._session.add_all(
             [
-                EmailFrom(email_id=email_id, email_from=email_from)
+                EmailFrom(
+                    email_id=email_id, email_from=email_from, user_id=self._user_id
+                )
                 for email_id, email_from in zip(df["id"], df["from"])
             ]
         )
@@ -216,7 +240,9 @@ class DatabaseInterface:
         label_lst = []
         for email_id, lid_lst in zip(df["id"], df["label_ids"]):
             for label_id in lid_lst:
-                label_lst.append(Labels(email_id=email_id, label_id=label_id))
+                label_lst.append(
+                    Labels(email_id=email_id, label_id=label_id, user_id=self._user_id)
+                )
         self._session.add_all(label_lst)
         self._session.commit()
 
@@ -224,7 +250,9 @@ class DatabaseInterface:
         email_to_lst = []
         for email_id, email_lst in zip(df["id"], df["to"]):
             for email_to in email_lst:
-                email_to_lst.append(EmailTo(email_id=email_id, email_to=email_to))
+                email_to_lst.append(
+                    EmailTo(email_id=email_id, email_to=email_to, user_id=self._user_id)
+                )
         self._session.add_all(email_to_lst)
         self._session.commit()
 
@@ -237,6 +265,7 @@ class DatabaseInterface:
                     email_content=email_content,
                     email_deleted=False,
                     email_date=email_date,
+                    user_id=self._user_id,
                 )
                 for email_id, email_subject, email_content, email_date in zip(
                     df["id"], df["subject"], df["content"], df["date"]
@@ -262,24 +291,28 @@ class DatabaseInterface:
             email_from = [
                 email_from.email_from
                 for email_from in self._session.query(EmailFrom)
+                .filter(EmailFrom.user_id == self._user_id)
                 .filter(EmailFrom.email_id == email_id)
                 .all()
             ]
             email_to = [
                 email_to.email_to
                 for email_to in self._session.query(EmailTo)
+                .filter(EmailTo.user_id == self._user_id)
                 .filter(EmailTo.email_id == email_id)
                 .all()
             ]
             label_lst = [
                 labels.label_id
                 for labels in self._session.query(Labels)
+                .filter(Labels.user_id == self._user_id)
                 .filter(Labels.email_id == email_id)
                 .all()
             ]
             thread_lst = [
                 threads.thread_id
                 for threads in self._session.query(Threads)
+                .filter(Threads.user_id == self._user_id)
                 .filter(Threads.email_id == email_id)
                 .all()
             ]
