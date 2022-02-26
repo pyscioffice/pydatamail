@@ -13,6 +13,7 @@ class DatabaseTest(TestCase):
             'date': datetime.strptime("Fri, 11 Feb 2022 18:08:46 +0100", "%a, %d %b %Y %H:%M:%S %z"),
             'from': 'sender@server.net',
             'id': 'myid123',
+            'cc': 'your@friend.com',
             'label_ids': ['important', 'Label_123'],
             'subject': 'Test Email Subject',
             'thread_id': 'abc123',
