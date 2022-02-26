@@ -5,3 +5,4 @@ from pydatamail.plots import (
     get_number_of_email_plot,
 )
 from pydatamail.message import Message, email_date_converter
+from pydatamail.machinelearning import one_hot_encoding
