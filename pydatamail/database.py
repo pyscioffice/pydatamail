@@ -136,10 +136,14 @@ class DatabaseInterface:
                         ]
                     )
                 if len(labels_to_remove) > 0:
-                    for label_id in labels_to_remove:
-                        self._session.query(Labels).filter(
-                            Labels.email_id == message_id
-                        ).filter(Labels.label_id == label_id).delete()
+                    _ = [
+                        self._session.query(Labels)
+                        .filter(Labels.user_id == self._user_id)
+                        .filter(Labels.email_id == message_id)
+                        .filter(Labels.label_id == label_id)
+                        .delete()
+                        for label_id in labels_to_remove
+                    ]
                 self._session.commit()
 
     def get_all_emails(self, include_deleted=False):
