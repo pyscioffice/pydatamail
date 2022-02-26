@@ -42,6 +42,14 @@ class EmailTo(Base):
     user_id = Column(Integer)
 
 
+class EmailCc(Base):
+    __tablename__ = "email_cc"
+    id = Column(Integer, primary_key=True)
+    email_id = Column(String, ForeignKey("email_content.email_id"))
+    email_cc = Column(String)
+    user_id = Column(Integer)
+
+
 class EmailFrom(Base):
     __tablename__ = "email_from"
     id = Column(Integer, primary_key=True)
@@ -67,6 +75,7 @@ class DatabaseInterface:
         self._commit_content_table(df=df)
         self._commit_email_from_table(df=df)
         self._commit_email_to_table(df=df)
+        self._commit_email_cc_table(df=df)
         self._commit_label_table(df=df)
         self._commit_thread_table(df=df)
 
@@ -194,6 +203,17 @@ class DatabaseInterface:
             ]
         )
 
+    def get_emails_by_cc(self, email_cc):
+        return self._get_email_collection(
+            email_id_lst=[
+                email_id
+                for email_id, in self._session.query(EmailTo.email_id)
+                .filter(EmailCc.user_id == self._user_id)
+                .filter(EmailCc.email_cc == email_cc)
+                .all()
+            ]
+        )
+
     def get_emails_by_thread(self, thread_id):
         return self._get_email_collection(
             email_id_lst=[
@@ -255,6 +275,16 @@ class DatabaseInterface:
         self._session.add_all(email_to_lst)
         self._session.commit()
 
+    def _commit_email_cc_table(self, df):
+        email_cc_lst = []
+        for email_id, email_lst in zip(df["id"], df["cc"]):
+            for email_cc in email_lst:
+                email_cc_lst.append(
+                    EmailCc(email_id=email_id, email_cc=email_cc, user_id=self._user_id)
+                )
+        self._session.add_all(email_cc_lst)
+        self._session.commit()
+
     def _commit_content_table(self, df):
         self._session.add_all(
             [
@@ -280,10 +310,11 @@ class DatabaseInterface:
             email_content_lst,
             email_from_lst,
             email_to_lst,
+            email_cc_lst,
             email_threads_lst,
             email_labels_lst,
             email_date_lst,
-        ) = ([], [], [], [], [], [], [], [])
+        ) = ([], [], [], [], [], [], [], [], [])
         for email_id, email_subject, email_content, email_date in tqdm(
             email_collect_lst
         ):
@@ -299,6 +330,13 @@ class DatabaseInterface:
                 for email_to in self._session.query(EmailTo)
                 .filter(EmailTo.user_id == self._user_id)
                 .filter(EmailTo.email_id == email_id)
+                .all()
+            ]
+            email_cc = [
+                email_cc.email_cc
+                for email_cc in self._session.query(EmailCc)
+                .filter(EmailCc.user_id == self._user_id)
+                .filter(EmailCc.email_id == email_id)
                 .all()
             ]
             label_lst = [
@@ -319,6 +357,7 @@ class DatabaseInterface:
                 email_from_lst.append(email_from[0])
             else:
                 email_from_lst.append(None)
+            email_cc_lst.append(email_cc)
             email_to_lst.append(email_to)
             email_labels_lst.append(label_lst)
             email_threads_lst.append(thread_lst[0])
@@ -331,6 +370,7 @@ class DatabaseInterface:
                 "id": email_id_lst,
                 "from": email_from_lst,
                 "to": email_to_lst,
+                "cc": email_cc_lst,
                 "date": email_date_lst,
                 "threads": email_threads_lst,
                 "labels": email_labels_lst,

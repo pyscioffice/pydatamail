@@ -26,6 +26,10 @@ class Message(ABC):
         pass
 
     @abstractmethod
+    def get_cc(self):
+        pass
+
+    @abstractmethod
     def get_label_ids(self):
         pass
 
@@ -56,6 +60,7 @@ class Message(ABC):
             "label_ids": self.get_label_ids(),
             "to": self.get_to(),
             "from": self.get_from(),
+            "cc": self.get_cc(),
             "subject": self.get_subject(),
             "content": self.get_content(),
             "date": self.get_date(),
