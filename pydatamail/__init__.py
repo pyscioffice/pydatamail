@@ -9,4 +9,5 @@ from pydatamail.machinelearning import (
     one_hot_encoding,
     get_training_input,
     train_randomforest,
+    get_machine_learning_database,
 )

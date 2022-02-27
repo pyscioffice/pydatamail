@@ -35,8 +35,8 @@ class MachineLearningDatabase(DatabaseTemplate):
                     MachineLearningLabels(
                         label_id=k, random_forest=pickle.dumps(v), user_id=user_id
                     )
+                    for k, v in model_dict_new.items()
                 ]
-                for k, v in model_dict_new.items()
             )
         if len(model_dict_update) > 0:
             label_obj_lst = (
@@ -155,3 +155,8 @@ def train_randomforest(df_in, results, n_estimators=1000, random_state=42):
     return RandomForestRegressor(
         n_estimators=n_estimators, random_state=random_state
     ).fit(df_in, results)
+
+
+def get_machine_learning_database(engine, session):
+    Base.metadata.create_all(engine)
+    return MachineLearningDatabase(session=session)
