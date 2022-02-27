@@ -18,12 +18,15 @@ class MachineLearningLabels(Base):
 
 
 class MachineLearningDatabase(DatabaseTemplate):
-    def store_models(self, model_dict, user_id=1, commit=True):
-        label_lst = (
+    def get_labels(self, user_id):
+        return (
             self._session.query(MachineLearningLabels.label_id)
-            .filter(MachineLearningLabels.user_id == user_id)
-            .all()
+                .filter(MachineLearningLabels.user_id == user_id)
+                .all()
         )
+
+    def store_models(self, model_dict, user_id=1, commit=True):
+        label_lst = self.get_labels(user_id=user_id)
         model_dict_new = {k: v for k, v in model_dict.items() if k not in label_lst}
         model_dict_update = {k: v for k, v in model_dict.items() if k in label_lst}
         model_delete_lst = [
