@@ -2,7 +2,8 @@ from unittest import TestCase
 from datetime import datetime
 import pandas
 from sqlalchemy import create_engine
-from pydatamail.database import DatabaseInterface
+from sqlalchemy.orm import sessionmaker
+from pydatamail.database import get_email_database
 
 
 class DatabaseTest(TestCase):
@@ -19,7 +20,11 @@ class DatabaseTest(TestCase):
             'thread_id': 'abc123',
             'to': ['me@mail.com', 'friend@provider.org']
         }])
-        cls.database = DatabaseInterface(engine=create_engine('sqlite:///:memory:', echo=True))
+        engine = create_engine('sqlite:///:memory:', echo=True)
+        cls.database = get_email_database(
+            engine=engine,
+            session=sessionmaker(bind=engine)()
+        )
         cls.database.store_dataframe(df=df)
 
     def test_list_email_ids(self):
