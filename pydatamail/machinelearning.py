@@ -1,5 +1,6 @@
 import pandas
 import pickle
+from tqdm import tqdm
 from sklearn.ensemble import RandomForestRegressor
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import declarative_base
@@ -19,11 +20,12 @@ class MachineLearningLabels(Base):
 
 class MachineLearningDatabase(DatabaseTemplate):
     def get_labels(self, user_id):
-        return (
-            self._session.query(MachineLearningLabels.label_id)
+        return [
+            label[0]
+            for label in self._session.query(MachineLearningLabels.label_id)
                 .filter(MachineLearningLabels.user_id == user_id)
                 .all()
-        )
+        ]
 
     def store_models(self, model_dict, user_id=1, commit=True):
         label_lst = self.get_labels(user_id=user_id)
@@ -71,6 +73,32 @@ class MachineLearningDatabase(DatabaseTemplate):
             label_obj.label_id: pickle.loads(label_obj.random_forest)
             for label_obj in label_obj_lst
         }
+
+    def get_models(self, df, user_id=1):
+        labels_to_learn = [c for c in df.columns.values if "labels_Label_" in c]
+        label_name_lst = [to_learn.split("labels_")[-1] for to_learn in labels_to_learn]
+        print(sorted(label_name_lst), sorted(self.get_labels(user_id=user_id)))
+        if sorted(label_name_lst) == sorted(self.get_labels(user_id=user_id)):
+            return self.load_models(user_id=user_id)
+        else:
+            df_in = get_training_input(df=df)
+            model_dict = {
+                to_learn.split("labels_")[-1]: self._train_randomforest(
+                    df_in=df_in,
+                    results=df[to_learn],
+                    n_estimators=1000,
+                    random_state=42
+                )
+                for to_learn in tqdm(labels_to_learn)
+            }
+            self.store_models(model_dict=model_dict, user_id=1)
+            return model_dict
+
+    @staticmethod
+    def _train_randomforest(df_in, results, n_estimators=1000, random_state=42):
+        return RandomForestRegressor(
+            n_estimators=n_estimators, random_state=random_state
+        ).fit(df_in, results)
 
 
 def _build_red_lst(df_column):
@@ -152,12 +180,6 @@ def get_training_input(df):
     return df.drop(
         [c for c in df.columns.values if "labels_" in c] + ["email_id"], axis=1
     )
-
-
-def train_randomforest(df_in, results, n_estimators=1000, random_state=42):
-    return RandomForestRegressor(
-        n_estimators=n_estimators, random_state=random_state
-    ).fit(df_in, results)
 
 
 def get_machine_learning_database(engine, session):
