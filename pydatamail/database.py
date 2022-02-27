@@ -172,7 +172,9 @@ class DatabaseInterface(DatabaseTemplate):
                 .filter(EmailContent.email_deleted == False)
                 .all()
             ]
-        return self._create_dataframe(email_collect_lst=email_collect_lst, user_id=user_id)
+        return self._create_dataframe(
+            email_collect_lst=email_collect_lst, user_id=user_id
+        )
 
     def get_emails_by_label(self, label_id, user_id=1):
         return self._get_email_collection(
@@ -183,7 +185,7 @@ class DatabaseInterface(DatabaseTemplate):
                 .filter(Labels.label_id == label_id)
                 .all()
             ],
-            user_id=user_id
+            user_id=user_id,
         )
 
     def get_emails_by_from(self, email_from, user_id=1):
@@ -195,7 +197,7 @@ class DatabaseInterface(DatabaseTemplate):
                 .filter(EmailFrom.email_from == email_from)
                 .all()
             ],
-            user_id=user_id
+            user_id=user_id,
         )
 
     def get_emails_by_to(self, email_to, user_id=1):
@@ -207,7 +209,7 @@ class DatabaseInterface(DatabaseTemplate):
                 .filter(EmailTo.email_to == email_to)
                 .all()
             ],
-            user_id=user_id
+            user_id=user_id,
         )
 
     def get_emails_by_cc(self, email_cc, user_id=1):
@@ -219,7 +221,7 @@ class DatabaseInterface(DatabaseTemplate):
                 .filter(EmailCc.email_cc == email_cc)
                 .all()
             ],
-            user_id=user_id
+            user_id=user_id,
         )
 
     def get_emails_by_thread(self, thread_id, user_id=1):
@@ -231,7 +233,7 @@ class DatabaseInterface(DatabaseTemplate):
                 .filter(Threads.thread_id == thread_id)
                 .all()
             ],
-            user_id=user_id
+            user_id=user_id,
         )
 
     def _get_email_collection(self, email_id_lst, user_id=1):
@@ -242,7 +244,9 @@ class DatabaseInterface(DatabaseTemplate):
             .filter(EmailContent.email_id.in_(email_id_lst))
             .all()
         ]
-        return self._create_dataframe(email_collect_lst=email_collect_lst, user_id=user_id)
+        return self._create_dataframe(
+            email_collect_lst=email_collect_lst, user_id=user_id
+        )
 
     def _commit_thread_table(self, df, user_id=1):
         self._session.add_all(
@@ -256,9 +260,7 @@ class DatabaseInterface(DatabaseTemplate):
     def _commit_email_from_table(self, df, user_id=1):
         self._session.add_all(
             [
-                EmailFrom(
-                    email_id=email_id, email_from=email_from, user_id=user_id
-                )
+                EmailFrom(email_id=email_id, email_from=email_from, user_id=user_id)
                 for email_id, email_from in zip(df["id"], df["from"])
             ]
         )
