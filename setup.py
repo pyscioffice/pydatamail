@@ -19,7 +19,8 @@ setup(
         'pandas==1.4.1',
         'sqlalchemy==1.4.31',
         'numpy==1.22.2',
-        'matplotlib==3.5.1'
+        'matplotlib==3.5.1',
+        'scikit-learn==1.0.2'
     ],
     cmdclass=versioneer.get_cmdclass()
 )
