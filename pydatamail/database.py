@@ -176,7 +176,7 @@ class DatabaseInterface(DatabaseTemplate):
             email_collect_lst=email_collect_lst, user_id=user_id
         )
 
-    def get_emails_by_label(self, label_id, user_id=1):
+    def get_emails_by_label(self, label_id, include_deleted=False, user_id=1):
         return self._get_email_collection(
             email_id_lst=[
                 email_id
@@ -185,10 +185,11 @@ class DatabaseInterface(DatabaseTemplate):
                 .filter(Labels.label_id == label_id)
                 .all()
             ],
+            include_deleted=include_deleted,
             user_id=user_id,
         )
 
-    def get_emails_by_from(self, email_from, user_id=1):
+    def get_emails_by_from(self, email_from, include_deleted=False, user_id=1):
         return self._get_email_collection(
             email_id_lst=[
                 email_id
@@ -197,10 +198,11 @@ class DatabaseInterface(DatabaseTemplate):
                 .filter(EmailFrom.email_from == email_from)
                 .all()
             ],
+            include_deleted=include_deleted,
             user_id=user_id,
         )
 
-    def get_emails_by_to(self, email_to, user_id=1):
+    def get_emails_by_to(self, email_to, include_deleted=False, user_id=1):
         return self._get_email_collection(
             email_id_lst=[
                 email_id
@@ -209,10 +211,11 @@ class DatabaseInterface(DatabaseTemplate):
                 .filter(EmailTo.email_to == email_to)
                 .all()
             ],
+            include_deleted=include_deleted,
             user_id=user_id,
         )
 
-    def get_emails_by_cc(self, email_cc, user_id=1):
+    def get_emails_by_cc(self, email_cc, include_deleted=False, user_id=1):
         return self._get_email_collection(
             email_id_lst=[
                 email_id
@@ -221,10 +224,11 @@ class DatabaseInterface(DatabaseTemplate):
                 .filter(EmailCc.email_cc == email_cc)
                 .all()
             ],
+            include_deleted=include_deleted,
             user_id=user_id,
         )
 
-    def get_emails_by_thread(self, thread_id, user_id=1):
+    def get_emails_by_thread(self, thread_id, include_deleted=False, user_id=1):
         return self._get_email_collection(
             email_id_lst=[
                 email_id
@@ -233,17 +237,28 @@ class DatabaseInterface(DatabaseTemplate):
                 .filter(Threads.thread_id == thread_id)
                 .all()
             ],
+            include_deleted=include_deleted,
             user_id=user_id,
         )
 
-    def _get_email_collection(self, email_id_lst, user_id=1):
-        email_collect_lst = [
-            [email.email_id, email.email_subject, email.email_content, email.email_date]
-            for email in self._session.query(EmailContent)
-            .filter(EmailContent.user_id == user_id)
-            .filter(EmailContent.email_id.in_(email_id_lst))
-            .all()
-        ]
+    def _get_email_collection(self, email_id_lst, include_deleted=False, user_id=1):
+        if include_deleted:
+            email_collect_lst = [
+                [email.email_id, email.email_subject, email.email_content, email.email_date]
+                for email in self._session.query(EmailContent)
+                .filter(EmailContent.user_id == user_id)
+                .filter(EmailContent.email_id.in_(email_id_lst))
+                .all()
+            ]
+        else:
+            email_collect_lst = [
+                [email.email_id, email.email_subject, email.email_content, email.email_date]
+                for email in self._session.query(EmailContent)
+                .filter(EmailContent.user_id == user_id)
+                .filter(EmailContent.email_id.in_(email_id_lst))
+                .filter(EmailContent.email_deleted == False)
+                .all()
+            ]
         return self._create_dataframe(
             email_collect_lst=email_collect_lst, user_id=user_id
         )
