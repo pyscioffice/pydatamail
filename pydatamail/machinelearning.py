@@ -19,16 +19,8 @@ class MachineLearningLabels(Base):
 
 
 class MachineLearningDatabase(DatabaseTemplate):
-    def get_labels(self, user_id):
-        return [
-            label[0]
-            for label in self._session.query(MachineLearningLabels.label_id)
-            .filter(MachineLearningLabels.user_id == user_id)
-            .all()
-        ]
-
     def store_models(self, model_dict, user_id=1, commit=True):
-        label_lst = self.get_labels(user_id=user_id)
+        label_lst = self._get_labels(user_id=user_id)
         model_dict_new = {k: v for k, v in model_dict.items() if k not in label_lst}
         model_dict_update = {k: v for k, v in model_dict.items() if k in label_lst}
         model_delete_lst = [
@@ -77,7 +69,7 @@ class MachineLearningDatabase(DatabaseTemplate):
     def get_models(self, df, user_id=1):
         labels_to_learn = [c for c in df.columns.values if "labels_Label_" in c]
         label_name_lst = [to_learn.split("labels_")[-1] for to_learn in labels_to_learn]
-        if sorted(label_name_lst) == sorted(self.get_labels(user_id=user_id)):
+        if sorted(label_name_lst) == sorted(self._get_labels(user_id=user_id)):
             return self.load_models(user_id=user_id)
         else:
             df_in = get_training_input(df=df)
@@ -92,6 +84,14 @@ class MachineLearningDatabase(DatabaseTemplate):
             }
             self.store_models(model_dict=model_dict, user_id=1)
             return model_dict
+
+    def _get_labels(self, user_id=1):
+        return [
+            label[0]
+            for label in self._session.query(MachineLearningLabels.label_id)
+            .filter(MachineLearningLabels.user_id == user_id)
+            .all()
+        ]
 
     @staticmethod
     def _train_randomforest(df_in, results, n_estimators=1000, random_state=42):
