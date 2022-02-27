@@ -66,8 +66,11 @@ class MachineLearningDatabase(DatabaseTemplate):
             for label_obj in label_obj_lst
         }
 
-    def get_models(self, df, user_id=1, n_estimators=10, random_state=42):
-        labels_to_learn = [c for c in df.columns.values if "labels_Label_" in c]
+    def train_model(
+        self, df, labels_to_learn=None, user_id=1, n_estimators=10, random_state=42
+    ):
+        if labels_to_learn is None:
+            labels_to_learn = [c for c in df.columns.values if "labels_Label_" in c]
         df_in = get_training_input(df=df).sort_index(axis=1)
         model_dict = {
             to_learn.split("labels_")[-1]: self._train_randomforest(
@@ -80,6 +83,24 @@ class MachineLearningDatabase(DatabaseTemplate):
         }
         self.store_models(model_dict=model_dict, user_id=user_id)
         return model_dict
+
+    def get_models(
+        self, df, user_id=1, n_estimators=10, random_state=42, recalculate=False
+    ):
+        labels_to_learn = [c for c in df.columns.values if "labels_Label_" in c]
+        label_name_lst = [to_learn.split("labels_")[-1] for to_learn in labels_to_learn]
+        if not recalculate and sorted(label_name_lst) == sorted(
+            self._get_labels(user_id=user_id)
+        ):
+            return self.load_models(user_id=user_id)
+        else:
+            return self.train_model(
+                df=df,
+                labels_to_learn=labels_to_learn,
+                user_id=user_id,
+                n_estimators=n_estimators,
+                random_state=random_state,
+            )
 
     def _get_labels(self, user_id=1):
         return [
@@ -128,16 +149,20 @@ def _list_entry_df(df, red_lst, column):
 def _merge_dicts(
     email_id, label_dict, cc_dict, from_dict, threads_dict, to_dict, label_lst
 ):
-    email_dict = {"email_id": email_id}
-    email_dict.update(label_dict)
-    email_dict.update(cc_dict)
-    email_dict.update(from_dict)
-    email_dict.update(threads_dict)
-    email_dict.update(to_dict)
-    email_dict.update(
-        {label: 0 for label in label_lst if label not in email_dict.keys()}
-    )
-    return email_dict
+    email_dict_prep = {"email_id": email_id}
+    email_dict_prep.update(label_dict)
+    email_dict_prep.update(cc_dict)
+    email_dict_prep.update(from_dict)
+    email_dict_prep.update(threads_dict)
+    email_dict_prep.update(to_dict)
+    if len(label_lst) == 0:
+        return email_dict_prep
+    else:
+        email_dict = {k: v for k, v in email_dict_prep.items() if k in label_lst}
+        email_dict.update(
+            {label: 0 for label in label_lst if label not in email_dict.keys()}
+        )
+        return email_dict
 
 
 def one_hot_encoding(df, label_lst=[]):
