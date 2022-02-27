@@ -244,7 +244,12 @@ class DatabaseInterface(DatabaseTemplate):
     def _get_email_collection(self, email_id_lst, include_deleted=False, user_id=1):
         if include_deleted:
             email_collect_lst = [
-                [email.email_id, email.email_subject, email.email_content, email.email_date]
+                [
+                    email.email_id,
+                    email.email_subject,
+                    email.email_content,
+                    email.email_date,
+                ]
                 for email in self._session.query(EmailContent)
                 .filter(EmailContent.user_id == user_id)
                 .filter(EmailContent.email_id.in_(email_id_lst))
@@ -252,7 +257,12 @@ class DatabaseInterface(DatabaseTemplate):
             ]
         else:
             email_collect_lst = [
-                [email.email_id, email.email_subject, email.email_content, email.email_date]
+                [
+                    email.email_id,
+                    email.email_subject,
+                    email.email_content,
+                    email.email_date,
+                ]
                 for email in self._session.query(EmailContent)
                 .filter(EmailContent.user_id == user_id)
                 .filter(EmailContent.email_id.in_(email_id_lst))
