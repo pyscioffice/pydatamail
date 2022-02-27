@@ -19,7 +19,7 @@ class EmailContent(Base):
 
 
 class Threads(Base):
-    __tablename__ = "threads"
+    __tablename__ = "email_threads"
     id = Column(Integer, primary_key=True)
     email_id = Column(String, ForeignKey("email_content.email_id"))
     thread_id = Column(String)
@@ -27,7 +27,7 @@ class Threads(Base):
 
 
 class Labels(Base):
-    __tablename__ = "labels"
+    __tablename__ = "email_labels"
     id = Column(Integer, primary_key=True)
     email_id = Column(String, ForeignKey("email_content.email_id"))
     label_id = Column(String)
