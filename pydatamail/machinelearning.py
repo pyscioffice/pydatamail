@@ -23,8 +23,8 @@ class MachineLearningDatabase(DatabaseTemplate):
         return [
             label[0]
             for label in self._session.query(MachineLearningLabels.label_id)
-                .filter(MachineLearningLabels.user_id == user_id)
-                .all()
+            .filter(MachineLearningLabels.user_id == user_id)
+            .all()
         ]
 
     def store_models(self, model_dict, user_id=1, commit=True):
@@ -77,7 +77,6 @@ class MachineLearningDatabase(DatabaseTemplate):
     def get_models(self, df, user_id=1):
         labels_to_learn = [c for c in df.columns.values if "labels_Label_" in c]
         label_name_lst = [to_learn.split("labels_")[-1] for to_learn in labels_to_learn]
-        print(sorted(label_name_lst), sorted(self.get_labels(user_id=user_id)))
         if sorted(label_name_lst) == sorted(self.get_labels(user_id=user_id)):
             return self.load_models(user_id=user_id)
         else:
@@ -87,7 +86,7 @@ class MachineLearningDatabase(DatabaseTemplate):
                     df_in=df_in,
                     results=df[to_learn],
                     n_estimators=1000,
-                    random_state=42
+                    random_state=42,
                 )
                 for to_learn in tqdm(labels_to_learn)
             }
