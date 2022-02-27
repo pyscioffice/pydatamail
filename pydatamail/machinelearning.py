@@ -66,7 +66,7 @@ class MachineLearningDatabase(DatabaseTemplate):
             for label_obj in label_obj_lst
         }
 
-    def get_models(self, df, user_id=1, n_estimators=1000, random_state=42):
+    def get_models(self, df, user_id=1, n_estimators=10, random_state=42):
         labels_to_learn = [c for c in df.columns.values if "labels_Label_" in c]
         df_in = get_training_input(df=df).sort_index(axis=1)
         model_dict = {
