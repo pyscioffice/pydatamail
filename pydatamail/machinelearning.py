@@ -1,4 +1,73 @@
 import pandas
+import pickle
+from sklearn.ensemble import RandomForestRegressor
+from sqlalchemy import Column, Integer, String
+from sqlalchemy.orm import declarative_base
+from pydatamail.database import DatabaseTemplate
+
+
+Base = declarative_base()
+
+
+class MachineLearningLabels(Base):
+    __tablename__ = "ml_labels"
+    id = Column(Integer, primary_key=True)
+    label_id = Column(String)
+    random_forest = Column(String)
+    user_id = Column(Integer)
+
+
+class MachineLearningDatabase(DatabaseTemplate):
+    def store_models(self, model_dict, user_id=1, commit=True):
+        label_lst = (
+            self._session.query(MachineLearningLabels.label_id)
+            .filter(MachineLearningLabels.user_id == user_id)
+            .all()
+        )
+        model_dict_new = {k: v for k, v in model_dict.items() if k not in label_lst}
+        model_dict_update = {k: v for k, v in model_dict.items() if k in label_lst}
+        model_delete_lst = [
+            label for label in label_lst if label not in model_dict.keys()
+        ]
+        if len(model_dict_new) > 0:
+            self._session.add_all(
+                [
+                    MachineLearningLabels(
+                        label_id=k, random_forest=pickle.dumps(v), user_id=user_id
+                    )
+                ]
+                for k, v in model_dict_new.items()
+            )
+        if len(model_dict_update) > 0:
+            label_obj_lst = (
+                self._session.query(MachineLearningLabels)
+                .filter(MachineLearningLabels.user_id == user_id)
+                .filter(
+                    MachineLearningLabels.label_id.in_(list(model_dict_update.keys()))
+                )
+                .all()
+            )
+            for label_obj in label_obj_lst:
+                label_obj.random_forest = pickle.dumps(
+                    model_dict_update[label_obj.label_id]
+                )
+        if len(model_delete_lst) > 0:
+            self._session.query(MachineLearningLabels).filter(
+                MachineLearningLabels.user_id == user_id
+            ).filter(MachineLearningLabels.label_id.in_(model_delete_lst)).delete()
+        if commit:
+            self._session.commit()
+
+    def load_models(self, user_id=1):
+        label_obj_lst = (
+            self._session.query(MachineLearningLabels)
+            .filter(MachineLearningLabels.user_id == user_id)
+            .all()
+        )
+        return {
+            label_obj.label_id: pickle.loads(label_obj.random_forest)
+            for label_obj in label_obj_lst
+        }
 
 
 def _build_red_lst(df_column):
@@ -74,3 +143,15 @@ def one_hot_encoding(df):
             )
         ]
     )
+
+
+def get_training_input(df):
+    return df.drop(
+        [c for c in df.columns.values if "labels_" in c] + ["email_id"], axis=1
+    )
+
+
+def train_randomforest(df_in, results, n_estimators=1000, random_state=42):
+    return RandomForestRegressor(
+        n_estimators=n_estimators, random_state=random_state
+    ).fit(df_in, results)

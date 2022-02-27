@@ -58,13 +58,17 @@ class EmailFrom(Base):
     user_id = Column(Integer)
 
 
-class DatabaseInterface:
-    def __init__(self, engine, session=None, user_id=1):
-        Base.metadata.create_all(engine)
-        if session is None:
-            self._session = sessionmaker(bind=engine)()
-        else:
-            self._session = session
+class DatabaseTemplate:
+    def __init__(self, session):
+        self._session = session
+
+    def close(self):
+        self._session.close()
+
+
+class DatabaseInterface(DatabaseTemplate):
+    def __init__(self, session=None, user_id=1):
+        super(DatabaseInterface).__init__(session=session)
         self._user_id = user_id
 
     @property
@@ -382,3 +386,10 @@ class DatabaseInterface:
                 "content": email_content_lst,
             }
         )
+
+
+def get_email_database(engine, session=None, user_id=1):
+    Base.metadata.create_all(engine)
+    if session is None:
+        session = sessionmaker(bind=engine)()
+    return DatabaseInterface(session=session, user_id=user_id)
