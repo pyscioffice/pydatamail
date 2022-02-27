@@ -68,22 +68,18 @@ class MachineLearningDatabase(DatabaseTemplate):
 
     def get_models(self, df, user_id=1):
         labels_to_learn = [c for c in df.columns.values if "labels_Label_" in c]
-        label_name_lst = [to_learn.split("labels_")[-1] for to_learn in labels_to_learn]
-        if sorted(label_name_lst) == sorted(self._get_labels(user_id=user_id)):
-            return self.load_models(user_id=user_id)
-        else:
-            df_in = get_training_input(df=df)
-            model_dict = {
-                to_learn.split("labels_")[-1]: self._train_randomforest(
-                    df_in=df_in,
-                    results=df[to_learn],
-                    n_estimators=1000,
-                    random_state=42,
-                )
-                for to_learn in tqdm(labels_to_learn)
-            }
-            self.store_models(model_dict=model_dict, user_id=1)
-            return model_dict
+        df_in = get_training_input(df=df).sort_index(axis=1)
+        model_dict = {
+            to_learn.split("labels_")[-1]: self._train_randomforest(
+                df_in=df_in,
+                results=df[to_learn],
+                n_estimators=1000,
+                random_state=42,
+            )
+            for to_learn in tqdm(labels_to_learn)
+        }
+        self.store_models(model_dict=model_dict, user_id=user_id)
+        return model_dict
 
     def _get_labels(self, user_id=1):
         return [
@@ -129,17 +125,22 @@ def _list_entry_df(df, red_lst, column):
     ]
 
 
-def _merge_dicts(email_id, label_dict, cc_dict, from_dict, threads_dict, to_dict):
+def _merge_dicts(
+    email_id, label_dict, cc_dict, from_dict, threads_dict, to_dict, label_lst
+):
     email_dict = {"email_id": email_id}
     email_dict.update(label_dict)
     email_dict.update(cc_dict)
     email_dict.update(from_dict)
     email_dict.update(threads_dict)
     email_dict.update(to_dict)
+    email_dict.update(
+        {label: 0 for label in label_lst if label not in email_dict.keys()}
+    )
     return email_dict
 
 
-def one_hot_encoding(df):
+def one_hot_encoding(df, label_lst=[]):
     dict_labels_lst = _list_entry_df(
         df=df, red_lst=_build_red_lst(df_column=df.labels.values), column="labels"
     )
@@ -162,6 +163,7 @@ def one_hot_encoding(df):
                 from_dict=from_dict,
                 threads_dict=threads_dict,
                 to_dict=to_dict,
+                label_lst=label_lst,
             )
             for email_id, label_dict, cc_dict, from_dict, threads_dict, to_dict in zip(
                 df.id.values,
