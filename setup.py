@@ -15,7 +15,7 @@ setup(
     license='BSD',
     packages=find_packages(exclude=["*tests*"]),
     install_requires=[
-        'tqdm==4.62.3',
+        'tqdm==4.63.0',
         'pandas==1.4.1',
         'sqlalchemy==1.4.31',
         'numpy==1.22.2',
