@@ -17,7 +17,7 @@ setup(
     install_requires=[
         'tqdm==4.63.0',
         'pandas==1.4.1',
-        'sqlalchemy==1.4.31',
+        'sqlalchemy==1.4.32',
         'numpy==1.22.2',
         'matplotlib==3.5.1',
         'scikit-learn==1.0.2'
