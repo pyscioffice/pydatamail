@@ -20,7 +20,7 @@ setup(
         'sqlalchemy==1.4.36',
         'numpy==1.22.3',
         'matplotlib==3.5.2',
-        'scikit-learn==1.1.0'
+        'scikit-learn==1.1.1'
     ],
     cmdclass=versioneer.get_cmdclass()
 )
