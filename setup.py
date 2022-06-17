@@ -9,6 +9,7 @@ setup(
     name='pydatamail',
     version=versioneer.get_version(),
     description='pydatamail - a python module to apply data science principles to email processing',
+    long_description='',
     url='https://github.com/pyscioffice/pydatamail',
     author='Jan Janssen',
     author_email='jan.janssen@outlook.com',
