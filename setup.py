@@ -2,6 +2,7 @@
 Setuptools based setup module
 """
 from setuptools import setup, find_packages
+from pathlib import Path
 import versioneer
 
 
@@ -9,7 +10,8 @@ setup(
     name='pydatamail',
     version=versioneer.get_version(),
     description='pydatamail - a python module to apply data science principles to email processing',
-    long_description='',
+    long_description=Path("README.md").read_text(),
+    long_description_content_type='text/markdown',
     url='https://github.com/pyscioffice/pydatamail',
     author='Jan Janssen',
     author_email='jan.janssen@outlook.com',
