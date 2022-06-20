@@ -148,7 +148,8 @@ def _single_entry_email_df(df, red_lst, column):
             for red_entry in red_lst
             if red_entry is not None
         }
-        for email in df[column].values if email is not None
+        for email in df[column].values
+        if email is not None
     ]
 
 
@@ -198,13 +199,11 @@ def one_hot_encoding(df, label_lst=[]):
     dict_cc_lst = _list_entry_email_df(
         df=df, red_lst=_build_red_lst(df_column=df.cc.values), column="cc"
     )
-    red_email_lst = \
-        [email for email in df["from"].unique() if email is not None] + \
-        [
-            "@" + email.split("@")[-1]
-            for email in df["from"].unique()
-            if email is not None and "@" in email
-        ]
+    red_email_lst = [email for email in df["from"].unique() if email is not None] + [
+        "@" + email.split("@")[-1]
+        for email in df["from"].unique()
+        if email is not None and "@" in email
+    ]
     dict_from_lst = _single_entry_email_df(df=df, red_lst=red_email_lst, column="from")
     dict_threads_lst = _single_entry_df(
         df=df, red_lst=df["threads"].unique(), column="threads"
