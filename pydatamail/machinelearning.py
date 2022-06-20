@@ -144,7 +144,7 @@ def _single_entry_df(df, red_lst, column):
 def _single_entry_email_df(df, red_lst, column):
     return [
         {
-            column + "_" + red_entry: 1 if email in red_entry else 0
+            column + "_" + red_entry: 1 if red_entry in email else 0
             for red_entry in red_lst
             if red_entry is not None
         }
