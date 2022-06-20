@@ -122,6 +122,11 @@ def _build_red_lst(df_column):
     for lst in df_column:
         for entry in lst:
             collect_lst.append(entry)
+
+        # For email addresses add an additional column with the domain
+        for entry in lst:
+            if "@" in entry:
+                collect_lst.append("@" + entry.split("@")[-1])
     return list(set(collect_lst))
 
 
@@ -136,10 +141,31 @@ def _single_entry_df(df, red_lst, column):
     ]
 
 
+def _single_entry_email_df(df, red_lst, column):
+    return [
+        {
+            column + "_" + red_entry: 1 if email in red_entry else 0
+            for red_entry in red_lst
+            if red_entry is not None
+        }
+        for email in df[column].values if email is not None
+    ]
+
+
 def _list_entry_df(df, red_lst, column):
     return [
         {
             column + "_" + red_entry: 1 if red_entry in email else 0
+            for red_entry in red_lst
+        }
+        for email in df[column].values
+    ]
+
+
+def _list_entry_email_df(df, red_lst, column):
+    return [
+        {
+            column + "_" + red_entry: 1 if any([red_entry in e for e in email]) else 0
             for red_entry in red_lst
         }
         for email in df[column].values
@@ -169,14 +195,21 @@ def one_hot_encoding(df, label_lst=[]):
     dict_labels_lst = _list_entry_df(
         df=df, red_lst=_build_red_lst(df_column=df.labels.values), column="labels"
     )
-    dict_cc_lst = _list_entry_df(
+    dict_cc_lst = _list_entry_email_df(
         df=df, red_lst=_build_red_lst(df_column=df.cc.values), column="cc"
     )
-    dict_from_lst = _single_entry_df(df=df, red_lst=df["from"].unique(), column="from")
+    red_email_lst = \
+        [email for email in df["from"].unique() if email is not None] + \
+        [
+            "@" + email.split("@")[-1]
+            for email in df["from"].unique()
+            if email is not None and "@" in email
+        ]
+    dict_from_lst = _single_entry_email_df(df=df, red_lst=red_email_lst, column="from")
     dict_threads_lst = _single_entry_df(
         df=df, red_lst=df["threads"].unique(), column="threads"
     )
-    dict_to_lst = _list_entry_df(
+    dict_to_lst = _list_entry_email_df(
         df=df, red_lst=_build_red_lst(df_column=df.to.values), column="to"
     )
     return pandas.DataFrame(
