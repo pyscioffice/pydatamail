@@ -31,13 +31,11 @@ def get_labels_pie_plot(gmail, df):
         sum([True if label_select in label else False for label in df.labels])
         for label_select in label_lst
     ]
-    convert_dict = {
-        v: k
-        for v, k in zip(
-            list(gmail._label_dict.values()), list(gmail._label_dict.keys())
-        )
-    }
-    label_convert_lst = [convert_dict[label] for label in label_lst]
+    label_convert_lst = [
+        gmail._label_dict_inverse[label]
+        if label in gmail._label_dict.values() else label
+        for label in label_lst
+    ]
     ind = np.argsort(label_count_lst)
 
     fig1, ax1 = plt.subplots()
@@ -49,10 +47,14 @@ def get_labels_pie_plot(gmail, df):
     plt.show()
 
 
-def get_number_of_email_plot(df, steps=8):
+def get_number_of_email_plot(df, steps=8, total=False):
     start_month = [d.year * 12 + d.month for d in pandas.to_datetime(df.date)]
 
-    plt.hist(start_month)
+    counts, month = np.histogram(start_month, bins=steps)
+    if total:
+        counts = np.cumsum(counts)
+    width = np.mean((month - np.roll(month, 1))[1:])
+    plt.bar(month[1:], counts, width=width)
     plt.xticks(
         np.linspace(np.min(start_month), np.max(start_month), steps),
         [
