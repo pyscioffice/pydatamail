@@ -1,7 +1,7 @@
 import pandas
 import pickle
 from tqdm import tqdm
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestClassifier
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import declarative_base
 from pydatamail.database import DatabaseTemplate
@@ -112,7 +112,7 @@ class MachineLearningDatabase(DatabaseTemplate):
 
     @staticmethod
     def _train_randomforest(df_in, results, n_estimators=1000, random_state=42):
-        return RandomForestRegressor(
+        return RandomForestClassifier(
             n_estimators=n_estimators, random_state=random_state
         ).fit(df_in, results)
 
