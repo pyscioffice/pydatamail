@@ -1,5 +1,6 @@
 import pandas
 import pickle
+import numpy as np
 from tqdm import tqdm
 from sklearn.ensemble import RandomForestClassifier
 from sqlalchemy import Column, Integer, String
@@ -190,6 +191,42 @@ def _merge_dicts(
             {label: 0 for label in label_lst if label not in email_dict.keys()}
         )
         return email_dict
+
+
+def gather_data_for_machine_learning(
+    df_all, labels_dict, labels_to_exclude_lst=[]
+):
+    """
+    Internal function to gather dataframe for training machine learning models
+
+    Args:
+        df_all (pandas.DataFrame): Dataframe with all emails
+        labels_dict (dict): Dictionary with translation for labels
+        labels_to_exclude_lst (list): list of email labels which are excluded from the fitting process
+
+    Returns:
+        pandas.DataFrame: With all emails and their encoded labels
+    """
+    df_all_encode = one_hot_encoding(df=df_all)
+    df_columns_to_drop_lst = [
+        "labels_" + labels_dict[label]
+        for label in labels_to_exclude_lst
+        if label in list(labels_dict.keys())
+    ]
+    df_columns_to_drop_lst = [
+        c for c in df_columns_to_drop_lst if c in df_all_encode.columns
+    ]
+    if len(df_columns_to_drop_lst) > 0:
+        array_bool = np.any(
+            [(df_all_encode[c] == 1).values for c in df_columns_to_drop_lst], axis=0
+        )
+        if isinstance(array_bool, np.ndarray) and len(array_bool) == len(
+            df_all_encode
+        ):
+            df_all_encode = df_all_encode[~array_bool]
+        return df_all_encode.drop(labels=df_columns_to_drop_lst, axis=1)
+    else:
+        return df_all_encode
 
 
 def one_hot_encoding(df, label_lst=[]):
