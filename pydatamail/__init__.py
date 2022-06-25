@@ -18,4 +18,6 @@ from pydatamail.machinelearning import (
 try:
     from pydatamail.textprocessing import text_pipeline, detect_language
 except ImportError:
-    warnings.warn("Textprocessing for machine learning requires additional dependencies.")
+    warnings.warn(
+        "Textprocessing for machine learning requires additional dependencies."
+    )

@@ -24,13 +24,13 @@ def get_bleach_text(text_input):
 
 
 def clean_str(text_input):
-    for special_character in ['\n', '&lt;', '&gt;', '&amp;', '_']:
-        text_input = text_input.replace(special_character, ' ')
+    for special_character in ["\n", "&lt;", "&gt;", "&amp;", "_"]:
+        text_input = text_input.replace(special_character, " ")
     return text_input
 
 
 def text_remove_whitespace(text_input):
-    return ' '.join(text_input.split())
+    return " ".join(text_input.split())
 
 
 def get_text_after_last_css_tag(text_input):
@@ -46,11 +46,11 @@ def get_text_after_last_css_tag(text_input):
 
 
 def text_remove_number(text_input):
-    return ''.join([i for i in text_input if not i.isdigit()])
+    return "".join([i for i in text_input if not i.isdigit()])
 
 
 def text_remove_url(text_input):
-    return re.sub(r'http\S+', '', text_input)
+    return re.sub(r"http\S+", "", text_input)
 
 
 def text_pipeline(text_input):
