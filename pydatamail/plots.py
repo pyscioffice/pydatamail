@@ -47,7 +47,8 @@ def get_labels_pie_plot(gmail, df):
     ]
     label_convert_lst = [
         gmail._label_dict_inverse[label]
-        if label in gmail._label_dict.values() else label
+        if label in gmail._label_dict.values()
+        else label
         for label in label_lst
     ]
     ind = np.argsort(label_count_lst)

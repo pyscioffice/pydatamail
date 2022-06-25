@@ -100,7 +100,7 @@ class MachineLearningDatabase(DatabaseTemplate):
             df=df,
             labels_to_learn=labels_to_learn,
             n_estimators=n_estimators,
-            random_state=random_state
+            random_state=random_state,
         )
         self.store_models(model_dict=model_dict, user_id=user_id)
         return model_dict
@@ -193,22 +193,22 @@ def train_model(df, labels_to_learn, n_estimators=10, random_state=42):
     df_in = _get_training_input(df=df).sort_index(axis=1)
     return {
         to_learn.split("labels_")[-1]: RandomForestClassifier(
-            n_estimators=n_estimators,
-            random_state=random_state
+            n_estimators=n_estimators, random_state=random_state
         ).fit(df_in, df[to_learn])
         for to_learn in tqdm(labels_to_learn)
     }
 
 
-def get_machine_learning_recommendations(models, df_select, df_all_encode, recommendation_ratio=0.9):
+def get_machine_learning_recommendations(
+    models, df_select, df_all_encode, recommendation_ratio=0.9
+):
     df_select_hot = one_hot_encoding(
         df=df_select, label_lst=df_all_encode.columns.values
     )
     df_select_red = _get_training_input(df=df_select_hot)
 
     predictions = {
-        k: v.predict(df_select_red.sort_index(axis=1))
-        for k, v in models.items()
+        k: v.predict(df_select_red.sort_index(axis=1)) for k, v in models.items()
     }
     label_lst = list(predictions.keys())
     prediction_array = np.array(list(predictions.values())).T
@@ -224,9 +224,7 @@ def get_machine_learning_recommendations(models, df_select, df_all_encode, recom
     }
 
 
-def gather_data_for_machine_learning(
-    df_all, labels_dict, labels_to_exclude_lst=[]
-):
+def gather_data_for_machine_learning(df_all, labels_dict, labels_to_exclude_lst=[]):
     """
     Internal function to gather dataframe for training machine learning models
 
@@ -251,9 +249,7 @@ def gather_data_for_machine_learning(
         array_bool = np.any(
             [(df_all_encode[c] == 1).values for c in df_columns_to_drop_lst], axis=0
         )
-        if isinstance(array_bool, np.ndarray) and len(array_bool) == len(
-            df_all_encode
-        ):
+        if isinstance(array_bool, np.ndarray) and len(array_bool) == len(df_all_encode):
             df_all_encode = df_all_encode[~array_bool]
         return df_all_encode.drop(labels=df_columns_to_drop_lst, axis=1)
     else:
