@@ -4,6 +4,13 @@ import matplotlib.pyplot as plt
 
 
 def get_from_pie_plot(df, minimum_emails=25):
+    """
+    Plot distribution of emails sorted by sender
+
+    Args:
+        df (pandas.DataFrame): Dataframe with emails
+        minimum_emails (int): number of emails from one sender to consider as individual sender
+    """
     df["from"].value_counts()
     dict_values = np.array(list(df["from"].value_counts().to_dict().values()))
     dict_keys = np.array(list(df["from"].value_counts().to_dict().keys()))
@@ -20,6 +27,13 @@ def get_from_pie_plot(df, minimum_emails=25):
 
 
 def get_labels_pie_plot(gmail, df):
+    """
+    Plot distribution of emails sorted by label
+
+    Args:
+        gmail (pydatamail_google.GoogleMailBase): Interface to Google Mail
+        df (pandas.DataFrame): Dataframe with emails
+    """
     label_lst = []
     for llst in df.labels.values:
         for ll in llst:
@@ -48,6 +62,14 @@ def get_labels_pie_plot(gmail, df):
 
 
 def get_number_of_email_plot(df, steps=8, total=False):
+    """
+    Plot increase of emails over time
+
+    Args:
+        df (pandas.DataFrame): Dataframe with emails
+        steps (int): number of dates on the x-axis
+        total (bool): plot the total number of emails vs. monthly new emails
+    """
     start_month = [d.year * 12 + d.month for d in pandas.to_datetime(df.date)]
 
     counts, month = np.histogram(start_month, bins=steps)
