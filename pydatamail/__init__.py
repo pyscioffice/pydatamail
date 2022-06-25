@@ -7,7 +7,8 @@ from pydatamail.plots import (
 from pydatamail.message import Message, email_date_converter
 from pydatamail.machinelearning import (
     one_hot_encoding,
-    get_training_input,
     get_machine_learning_database,
-    gather_data_for_machine_learning
+    gather_data_for_machine_learning,
+    train_model,
+    get_machine_learning_recommendations,
 )

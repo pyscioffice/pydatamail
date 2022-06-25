@@ -67,24 +67,6 @@ class MachineLearningDatabase(DatabaseTemplate):
             for label_obj in label_obj_lst
         }
 
-    def train_model(
-        self, df, labels_to_learn=None, user_id=1, n_estimators=10, random_state=42
-    ):
-        if labels_to_learn is None:
-            labels_to_learn = [c for c in df.columns.values if "labels_Label_" in c]
-        df_in = get_training_input(df=df).sort_index(axis=1)
-        model_dict = {
-            to_learn.split("labels_")[-1]: self._train_randomforest(
-                df_in=df_in,
-                results=df[to_learn],
-                n_estimators=n_estimators,
-                random_state=random_state,
-            )
-            for to_learn in tqdm(labels_to_learn)
-        }
-        self.store_models(model_dict=model_dict, user_id=user_id)
-        return model_dict
-
     def get_models(
         self, df, user_id=1, n_estimators=10, random_state=42, recalculate=False
     ):
@@ -95,7 +77,7 @@ class MachineLearningDatabase(DatabaseTemplate):
         ):
             return self.load_models(user_id=user_id)
         else:
-            return self.train_model(
+            return self._train_model(
                 df=df,
                 labels_to_learn=labels_to_learn,
                 user_id=user_id,
@@ -111,11 +93,17 @@ class MachineLearningDatabase(DatabaseTemplate):
             .all()
         ]
 
-    @staticmethod
-    def _train_randomforest(df_in, results, n_estimators=1000, random_state=42):
-        return RandomForestClassifier(
-            n_estimators=n_estimators, random_state=random_state
-        ).fit(df_in, results)
+    def _train_model(
+        self, df, labels_to_learn=None, user_id=1, n_estimators=10, random_state=42
+    ):
+        model_dict = train_model(
+            df=df,
+            labels_to_learn=labels_to_learn,
+            n_estimators=n_estimators,
+            random_state=random_state
+        )
+        self.store_models(model_dict=model_dict, user_id=user_id)
+        return model_dict
 
 
 def _build_red_lst(df_column):
@@ -193,6 +181,49 @@ def _merge_dicts(
         return email_dict
 
 
+def _get_training_input(df):
+    return df.drop(
+        [c for c in df.columns.values if "labels_" in c] + ["email_id"], axis=1
+    )
+
+
+def train_model(df, labels_to_learn, n_estimators=10, random_state=42):
+    if labels_to_learn is None:
+        labels_to_learn = [c for c in df.columns.values if "labels_Label_" in c]
+    df_in = _get_training_input(df=df).sort_index(axis=1)
+    return {
+        to_learn.split("labels_")[-1]: RandomForestClassifier(
+            n_estimators=n_estimators,
+            random_state=random_state
+        ).fit(df_in, df[to_learn])
+        for to_learn in tqdm(labels_to_learn)
+    }
+
+
+def get_machine_learning_recommendations(models, df_select, df_all_encode, recommendation_ratio=0.9):
+    df_select_hot = one_hot_encoding(
+        df=df_select, label_lst=df_all_encode.columns.values
+    )
+    df_select_red = _get_training_input(df=df_select_hot)
+
+    predictions = {
+        k: v.predict(df_select_red.sort_index(axis=1))
+        for k, v in models.items()
+    }
+    label_lst = list(predictions.keys())
+    prediction_array = np.array(list(predictions.values())).T
+    new_label_lst = [
+        label_lst[email] if np.max(values) > recommendation_ratio else None
+        for email, values in zip(
+            np.argsort(prediction_array, axis=1)[:, -1], prediction_array
+        )
+    ]
+    return {
+        email_id: label
+        for email_id, label in zip(df_select_hot.email_id.values, new_label_lst)
+    }
+
+
 def gather_data_for_machine_learning(
     df_all, labels_dict, labels_to_exclude_lst=[]
 ):
@@ -268,12 +299,6 @@ def one_hot_encoding(df, label_lst=[]):
                 dict_to_lst,
             )
         ]
-    )
-
-
-def get_training_input(df):
-    return df.drop(
-        [c for c in df.columns.values if "labels_" in c] + ["email_id"], axis=1
     )
 
 
