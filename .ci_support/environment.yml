@@ -4,7 +4,6 @@ dependencies:
 - python
 - coverage
 - coveralls
-- numpy =1.23.0
 - tqdm =4.64.0
 - pandas =1.4.3
 - sqlalchemy =1.4.39
