@@ -74,7 +74,14 @@ class MachineLearningDatabase(DatabaseTemplate):
         }
 
     def get_models(
-        self, df, user_id=1, n_estimators=10, random_state=42, recalculate=False
+        self,
+        df,
+        user_id=1,
+        n_estimators=100,
+        max_features=400,
+        random_state=42,
+        bootstrap=True,
+        recalculate=False,
     ):
         labels_to_learn = [c for c in df.columns.values if "labels_Label_" in c]
         label_name_lst = [to_learn.split("labels_")[-1] for to_learn in labels_to_learn]
@@ -88,7 +95,9 @@ class MachineLearningDatabase(DatabaseTemplate):
                 labels_to_learn=labels_to_learn,
                 user_id=user_id,
                 n_estimators=n_estimators,
+                max_features=max_features,
                 random_state=random_state,
+                bootstrap=bootstrap,
             )
 
     def _get_labels(self, user_id=1):
@@ -100,13 +109,22 @@ class MachineLearningDatabase(DatabaseTemplate):
         ]
 
     def _train_model(
-        self, df, labels_to_learn=None, user_id=1, n_estimators=10, random_state=42
+        self,
+        df,
+        labels_to_learn=None,
+        user_id=1,
+        n_estimators=100,
+        max_features=400,
+        random_state=42,
+        bootstrap=True,
     ):
         model_dict = train_model(
             df=df,
             labels_to_learn=labels_to_learn,
             n_estimators=n_estimators,
+            max_features=max_features,
             random_state=random_state,
+            bootstrap=bootstrap,
         )
         self.store_models(model_dict=model_dict, user_id=user_id)
         return model_dict
@@ -193,13 +211,23 @@ def _get_training_input(df):
     )
 
 
-def train_model(df, labels_to_learn, n_estimators=10, random_state=42):
+def train_model(
+    df,
+    labels_to_learn,
+    n_estimators=100,
+    max_features=400,
+    random_state=42,
+    bootstrap=True,
+):
     if labels_to_learn is None:
         labels_to_learn = [c for c in df.columns.values if "labels_Label_" in c]
     df_in = _get_training_input(df=df).sort_index(axis=1)
     return {
         to_learn.split("labels_")[-1]: RandomForestClassifier(
-            n_estimators=n_estimators, random_state=random_state
+            n_estimators=n_estimators,
+            random_state=random_state,
+            bootstrap=bootstrap,
+            max_features=max_features,
         ).fit(df_in, df[to_learn])
         for to_learn in tqdm(labels_to_learn)
     }
