@@ -1,3 +1,4 @@
+import warnings
 from pydatamail.database import get_email_database, DatabaseTemplate
 from pydatamail.plots import (
     get_from_pie_plot,
@@ -7,6 +8,16 @@ from pydatamail.plots import (
 from pydatamail.message import Message, email_date_converter
 from pydatamail.machinelearning import (
     one_hot_encoding,
-    get_training_input,
     get_machine_learning_database,
+    gather_data_for_machine_learning,
+    train_model,
+    get_machine_learning_recommendations,
 )
+
+
+try:
+    from pydatamail.textprocessing import text_pipeline, detect_language
+except ImportError:
+    warnings.warn(
+        "Textprocessing for machine learning requires additional dependencies."
+    )

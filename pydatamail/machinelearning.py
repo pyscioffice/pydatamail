@@ -1,10 +1,17 @@
 import pandas
 import pickle
+import numpy as np
 from tqdm import tqdm
-from sklearn.ensemble import RandomForestRegressor
+import warnings
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import declarative_base
 from pydatamail.database import DatabaseTemplate
+
+
+try:
+    from sklearn.ensemble import RandomForestClassifier
+except ImportError:
+    warnings.warn("Machine learning requires scikit-learn")
 
 
 Base = declarative_base()
@@ -66,26 +73,15 @@ class MachineLearningDatabase(DatabaseTemplate):
             for label_obj in label_obj_lst
         }
 
-    def train_model(
-        self, df, labels_to_learn=None, user_id=1, n_estimators=10, random_state=42
-    ):
-        if labels_to_learn is None:
-            labels_to_learn = [c for c in df.columns.values if "labels_Label_" in c]
-        df_in = get_training_input(df=df).sort_index(axis=1)
-        model_dict = {
-            to_learn.split("labels_")[-1]: self._train_randomforest(
-                df_in=df_in,
-                results=df[to_learn],
-                n_estimators=n_estimators,
-                random_state=random_state,
-            )
-            for to_learn in tqdm(labels_to_learn)
-        }
-        self.store_models(model_dict=model_dict, user_id=user_id)
-        return model_dict
-
     def get_models(
-        self, df, user_id=1, n_estimators=10, random_state=42, recalculate=False
+        self,
+        df,
+        user_id=1,
+        n_estimators=100,
+        max_features=400,
+        random_state=42,
+        bootstrap=True,
+        recalculate=False,
     ):
         labels_to_learn = [c for c in df.columns.values if "labels_Label_" in c]
         label_name_lst = [to_learn.split("labels_")[-1] for to_learn in labels_to_learn]
@@ -94,12 +90,14 @@ class MachineLearningDatabase(DatabaseTemplate):
         ):
             return self.load_models(user_id=user_id)
         else:
-            return self.train_model(
+            return self._train_model(
                 df=df,
                 labels_to_learn=labels_to_learn,
                 user_id=user_id,
                 n_estimators=n_estimators,
+                max_features=max_features,
                 random_state=random_state,
+                bootstrap=bootstrap,
             )
 
     def _get_labels(self, user_id=1):
@@ -110,11 +108,26 @@ class MachineLearningDatabase(DatabaseTemplate):
             .all()
         ]
 
-    @staticmethod
-    def _train_randomforest(df_in, results, n_estimators=1000, random_state=42):
-        return RandomForestRegressor(
-            n_estimators=n_estimators, random_state=random_state
-        ).fit(df_in, results)
+    def _train_model(
+        self,
+        df,
+        labels_to_learn=None,
+        user_id=1,
+        n_estimators=100,
+        max_features=400,
+        random_state=42,
+        bootstrap=True,
+    ):
+        model_dict = train_model(
+            df=df,
+            labels_to_learn=labels_to_learn,
+            n_estimators=n_estimators,
+            max_features=max_features,
+            random_state=random_state,
+            bootstrap=bootstrap,
+        )
+        self.store_models(model_dict=model_dict, user_id=user_id)
+        return model_dict
 
 
 def _build_red_lst(df_column):
@@ -122,6 +135,11 @@ def _build_red_lst(df_column):
     for lst in df_column:
         for entry in lst:
             collect_lst.append(entry)
+
+        # For email addresses add an additional column with the domain
+        for entry in lst:
+            if "@" in entry:
+                collect_lst.append("@" + entry.split("@")[-1])
     return list(set(collect_lst))
 
 
@@ -136,10 +154,32 @@ def _single_entry_df(df, red_lst, column):
     ]
 
 
+def _single_entry_email_df(df, red_lst, column):
+    return [
+        {
+            column + "_" + red_entry: 1 if red_entry in email else 0
+            for red_entry in red_lst
+            if red_entry is not None
+        }
+        for email in df[column].values
+        if email is not None
+    ]
+
+
 def _list_entry_df(df, red_lst, column):
     return [
         {
             column + "_" + red_entry: 1 if red_entry in email else 0
+            for red_entry in red_lst
+        }
+        for email in df[column].values
+    ]
+
+
+def _list_entry_email_df(df, red_lst, column):
+    return [
+        {
+            column + "_" + red_entry: 1 if any([red_entry in e for e in email]) else 0
             for red_entry in red_lst
         }
         for email in df[column].values
@@ -165,18 +205,108 @@ def _merge_dicts(
         return email_dict
 
 
+def _get_training_input(df):
+    return df.drop(
+        [c for c in df.columns.values if "labels_" in c] + ["email_id"], axis=1
+    )
+
+
+def train_model(
+    df,
+    labels_to_learn,
+    n_estimators=100,
+    max_features=400,
+    random_state=42,
+    bootstrap=True,
+):
+    if labels_to_learn is None:
+        labels_to_learn = [c for c in df.columns.values if "labels_Label_" in c]
+    df_in = _get_training_input(df=df).sort_index(axis=1)
+    return {
+        to_learn.split("labels_")[-1]: RandomForestClassifier(
+            n_estimators=n_estimators,
+            random_state=random_state,
+            bootstrap=bootstrap,
+            max_features=max_features,
+        ).fit(df_in, df[to_learn])
+        for to_learn in tqdm(labels_to_learn)
+    }
+
+
+def get_machine_learning_recommendations(
+    models, df_select, df_all_encode, recommendation_ratio=0.9
+):
+    df_select_hot = one_hot_encoding(
+        df=df_select, label_lst=df_all_encode.columns.values
+    )
+    df_select_red = _get_training_input(df=df_select_hot)
+
+    predictions = {
+        k: v.predict(df_select_red.sort_index(axis=1)) for k, v in models.items()
+    }
+    label_lst = list(predictions.keys())
+    prediction_array = np.array(list(predictions.values())).T
+    new_label_lst = [
+        label_lst[email] if np.max(values) > recommendation_ratio else None
+        for email, values in zip(
+            np.argsort(prediction_array, axis=1)[:, -1], prediction_array
+        )
+    ]
+    return {
+        email_id: label
+        for email_id, label in zip(df_select_hot.email_id.values, new_label_lst)
+    }
+
+
+def gather_data_for_machine_learning(df_all, labels_dict, labels_to_exclude_lst=[]):
+    """
+    Internal function to gather dataframe for training machine learning models
+
+    Args:
+        df_all (pandas.DataFrame): Dataframe with all emails
+        labels_dict (dict): Dictionary with translation for labels
+        labels_to_exclude_lst (list): list of email labels which are excluded from the fitting process
+
+    Returns:
+        pandas.DataFrame: With all emails and their encoded labels
+    """
+    df_all_encode = one_hot_encoding(df=df_all)
+    df_columns_to_drop_lst = [
+        "labels_" + labels_dict[label]
+        for label in labels_to_exclude_lst
+        if label in list(labels_dict.keys())
+    ]
+    df_columns_to_drop_lst = [
+        c for c in df_columns_to_drop_lst if c in df_all_encode.columns
+    ]
+    if len(df_columns_to_drop_lst) > 0:
+        array_bool = np.any(
+            [(df_all_encode[c] == 1).values for c in df_columns_to_drop_lst], axis=0
+        )
+        if isinstance(array_bool, np.ndarray) and len(array_bool) == len(df_all_encode):
+            df_all_encode = df_all_encode[~array_bool]
+        return df_all_encode.drop(labels=df_columns_to_drop_lst, axis=1)
+    else:
+        return df_all_encode
+
+
 def one_hot_encoding(df, label_lst=[]):
     dict_labels_lst = _list_entry_df(
         df=df, red_lst=_build_red_lst(df_column=df.labels.values), column="labels"
     )
-    dict_cc_lst = _list_entry_df(
+    dict_cc_lst = _list_entry_email_df(
         df=df, red_lst=_build_red_lst(df_column=df.cc.values), column="cc"
     )
-    dict_from_lst = _single_entry_df(df=df, red_lst=df["from"].unique(), column="from")
+    red_email_lst = [email for email in df["from"].unique() if email is not None] + [
+        "@" + email.split("@")[-1]
+        for email in df["from"].unique()
+        if email is not None and "@" in email
+    ]
+    dict_from_lst = _single_entry_email_df(df=df, red_lst=red_email_lst, column="from")
     dict_threads_lst = _single_entry_df(
         df=df, red_lst=df["threads"].unique(), column="threads"
     )
-    dict_to_lst = _list_entry_df(
+    dict_to_lst = _list_entry_email_df(
         df=df, red_lst=_build_red_lst(df_column=df.to.values), column="to"
     )
     return pandas.DataFrame(
@@ -199,12 +329,6 @@ def one_hot_encoding(df, label_lst=[]):
                 dict_to_lst,
             )
         ]
-    )
-
-
-def get_training_input(df):
-    return df.drop(
-        [c for c in df.columns.values if "labels_" in c] + ["email_id"], axis=1
     )
 
 
