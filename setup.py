@@ -23,11 +23,6 @@ setup(
         'pandas==1.4.3',
         'sqlalchemy==1.4.39',
         'matplotlib==3.5.2',
-        # machine learning dependencies
-        'scikit-learn==1.1.1',
-        'bleach==5.0.0',
-        'cssutils==2.4.2',
-        'langdetect==1.0.9',
     ],
     cmdclass=versioneer.get_cmdclass()
 )
