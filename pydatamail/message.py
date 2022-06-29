@@ -3,6 +3,8 @@ from datetime import datetime
 
 
 def email_date_converter(email_date):
+    if email_date.count(",") >= 2:
+        email_date = ", ".join(email_date.split(", ")[-2:])
     if email_date[-3:-2].isalpha():
         email_date = " ".join(email_date.split()[:-1])
     if email_date[:3].isalpha() and email_date[-3] != ":":
