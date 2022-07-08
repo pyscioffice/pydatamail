@@ -105,7 +105,7 @@ class DatabaseInterface(DatabaseTemplate):
         return new_messages_lst, message_label_updates_lst, deleted_messages_lst
 
     def update_labels(self, message_id_lst, message_meta_lst, user_id=1):
-        for message_id, message_labels in zip(message_id_lst, message_meta_lst):
+        for message_id, message_labels in tqdm(zip(message_id_lst, message_meta_lst)):
             message_label_stored = [
                 m
                 for m, in self._session.query(Labels.label_id)
