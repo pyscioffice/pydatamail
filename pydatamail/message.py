@@ -11,6 +11,8 @@ def email_date_converter(email_date):
         return datetime.strptime(email_date, "%a, %d %b %Y %H:%M:%S %z")
     elif email_date[-3] == ":":
         return datetime.strptime(email_date, "%a, %d %b %Y %H:%M:%S")
+    elif "-" in email_date:
+        return datetime.strptime(email_date, "%d-%m-%Y")
     else:
         return datetime.strptime(email_date, "%d %b %Y %H:%M:%S %z")
 
