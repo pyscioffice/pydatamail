@@ -105,7 +105,9 @@ class DatabaseInterface(DatabaseTemplate):
         return new_messages_lst, message_label_updates_lst, deleted_messages_lst
 
     def update_labels(self, message_id_lst, message_meta_lst, user_id=1):
-        for message_id, message_labels in tqdm(zip(message_id_lst, message_meta_lst)):
+        for message_id, message_labels in tqdm(
+            iterable=zip(message_id_lst, message_meta_lst), desc="Update labels"
+        ):
             message_label_stored = [
                 m
                 for m, in self._session.query(Labels.label_id)
@@ -352,7 +354,7 @@ class DatabaseInterface(DatabaseTemplate):
             email_date_lst,
         ) = ([], [], [], [], [], [], [], [], [])
         for email_id, email_subject, email_content, email_date in tqdm(
-            email_collect_lst
+            iterable=email_collect_lst, desc="Create DataFrame from database"
         ):
             email_from = [
                 email_from.email_from
