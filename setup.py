@@ -19,7 +19,7 @@ setup(
     packages=find_packages(exclude=["*tests*"]),
     install_requires=[
         'numpy==1.23.2',
-        'tqdm==4.64.0',
+        'tqdm==4.64.1',
         'pandas==1.4.3',
         'sqlalchemy==1.4.40',
         'matplotlib==3.5.3',
