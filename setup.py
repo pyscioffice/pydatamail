@@ -22,7 +22,7 @@ setup(
         'tqdm==4.64.1',
         'pandas==1.4.3',
         'sqlalchemy==1.4.40',
-        'matplotlib==3.5.3',
+        'matplotlib==3.6.0',
     ],
     cmdclass=versioneer.get_cmdclass()
 )
