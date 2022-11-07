@@ -21,7 +21,7 @@ setup(
         'numpy==1.23.4',
         'tqdm==4.64.1',
         'pandas==1.5.1',
-        'sqlalchemy==1.4.42',
+        'sqlalchemy==1.4.43',
         'matplotlib==3.6.2',
     ],
     cmdclass=versioneer.get_cmdclass()
